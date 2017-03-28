@@ -147,6 +147,45 @@ double angle_vec3(vec3 a, vec3 b)
 }
 
 static void greenwidtchtime(double jd, double *gst);
+static void eci2ecef(double gst, vec3 vec_eci, vec3 *vec_ecef);
+/* A is the GPS Point */
+/* B is the Receiver Point */
+/* All is in ECI coordinates */
+/* To get the vector from Rx to GPS: DST = GPS-RX */
+void azimuth_elev_dist_vec3(double jd, vec3 a, vec3 b, vec3 * res)
+{
+    vec3 llh_gs;
+    vec3 ecef_gs_to_sat;
+    vec3 ecef_sat, ecef_gs;
+    vec3 sez_coords;
+    double gst;
+    double gs_lat, gs_lon;
+
+    greenwidtchtime(jd, &gst);
+
+    eci2ecef(gst, a, &ecef_sat);
+    eci2ecef(gst, b, &ecef_gs);
+
+    sub_vec3(ecef_sat, ecef_gs, &ecef_gs_to_sat);
+    /* dst is the ECEF vector from b to a -> gs to sat */
+
+    /* lat lon is required */
+    ecef2llh(ecef_gs, &llh_gs);
+    gs_lat = DEG2RAD(llh_gs.f.x);
+    gs_lon = DEG2RAD(llh_gs.f.y);
+
+    sez_coords.f.x = sin(gs_lat)*cos(gs_lon)*ecef_gs_to_sat.f.x + sin(gs_lat)*sin(gs_lon)*ecef_gs_to_sat.f.y - cos(gs_lat)*ecef_gs_to_sat.f.z;
+    sez_coords.f.y = -sin(gs_lon)*ecef_gs_to_sat.f.x + cos(gs_lon)*ecef_gs_to_sat.f.y;
+    sez_coords.f.z = cos(gs_lat)*cos(gs_lon)*ecef_gs_to_sat.f.x + cos(gs_lat)*sin(gs_lon)*ecef_gs_to_sat.f.y + sin(gs_lat)*ecef_gs_to_sat.f.z;
+
+    res->raw[0] = atan2( sez_coords.f.y, -sez_coords.f.x) * 180.0 / PI;
+    if(res->raw[0] < 0.0){
+        /* Make the flip */
+        res->raw[0] += 360.0 - 1e-10;
+    }
+    res->raw[2] = sqrt(pow(sez_coords.f.x, 2) + pow(sez_coords.f.y, 2) + pow(sez_coords.f.z, 2));
+    res->raw[1] = asin(sez_coords.f.z/res->raw[2]) * 180.0 / PI;
+}
 
 void ecef2eci(double gst, vec3 vec_ecef, vec3 *vec_eci)
 {
@@ -514,4 +553,5 @@ int actualposition(double jd_actual, tle_set * tle, vec3 *sat_eci, vec3 *sat_vel
     /* Transformation to Latitude(deg), Longitude(deg) and Height(m) */
     return 0;
 }
+
 

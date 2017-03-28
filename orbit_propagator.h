@@ -9,9 +9,9 @@
 
 
 /* Geodetic transf. defines */
-#define  OMEGAE  7.29211586e-5              //  Earth rotation rate in rad/s
+#define OMEGAE  7.29211586e-5              	//  Earth rotation rate in rad/s
 #define F 1/298.257223563                   //  WGS-84 Flattening.
-#define ECCN (F*(2.0 - F))              //  Eccentricity.
+#define ECCN (F*(2.0 - F))              	//  Eccentricity.
 #define R_0 (double)6378137                 //  WGS-84 equatorial radius (m).
 #define R_P (double)R_0*(1 - Fwgs_84)       //  Polar radius (m).
 
@@ -82,9 +82,13 @@ int 		actualposition(double jd_actual, tle_set * tle, vec3 *sat_eci, vec3 *sat_v
 double 		j_day(unsigned int unix_timestamp);
 double 		angle_vec3(vec3 a, vec3 b);
 
+void 		azimuth_elev_dist_vec3(double jd, vec3 a, vec3 b, vec3 * res);
+
 void 		eci2llh(double jd_actual, vec3 eci, vec3 *llh);
 void 		ecef2llh(vec3 ecef, vec3 *llh);
 void 		llh2ecef(vec3 llh, vec3 *ecef);
 void 		llh2eci(double jd_actual, vec3 llh, vec3 *eci);
+
+void 		sub_vec3(vec3 a, vec3 b, vec3 *res);
 
 #endif
