@@ -525,8 +525,6 @@ int actualposition(double jd_actual, tle_set * tle, vec3 *sat_eci, vec3 *sat_vel
     long satno = 0;
     
     vec3 pos_eci, vel_eci;
-    vec3 pos_ecef, vel_ecef;
-    vec3 xsat_ecef, xsat_eci, vsat_eci, vsat_ecef;
 
     double gst;
     /* compute GST value */

@@ -1,4 +1,4 @@
-#include "gps_tracker_api.h"
+#include "galileo_tracker_api.h"
 
 static tle_set * load_tle_from_file(FILE *fp)
 {
@@ -95,53 +95,6 @@ static int get_norad_id(tle_set * tle)
     return (atoi(num));
 }
 
-int get_receiver_motion(const char * tle_file, vec3 * llh_pos, object_motion_t * receiver)
-{
-    FILE * fp;
-    tle_set * tle;
-    if (receiver == NULL){
-        _api_printf(1, "Receiver motion is null \n");
-    }
-    if (tle_file == NULL && llh_pos == NULL){
-        _api_printf(1, "Really, you are stupid\n");
-        return -1;
-    }
-    if (tle_file != NULL){
-        /* Process TLE file */
-        /* If there are both, just tle is preferred */
-        fp = fopen(tle_file, "r");
-        if (fp == NULL){
-            return -1;
-        }
-        tle = load_tle_from_file(fp);
-        if (tle == NULL){
-            return -1;
-        }
-
-        if (actualposition(j_day(time(NULL)), tle, &receiver->pos, &receiver->vel) == 0){
-            /* Which is that position? */
-            vec3 llh;
-            eci2llh(j_day(time(NULL)), receiver->pos, &llh);
-            _api_printf(1, "Receiver position: %fº %fº %f meters\n", llh.f.x, llh.f.y, llh.f.z);
-            free(tle);
-            fclose(fp);
-            return 0;
-        }else{
-            free(tle);
-            fclose(fp);
-            return -1; 
-        }
-    }
-    if (llh_pos != NULL){
-        llh2eci(j_day(time(NULL)), *llh_pos, &receiver->pos);
-        receiver->vel.f.x = 0;
-        receiver->vel.f.y = 0;
-        receiver->vel.f.z = 0;
-        return 0;
-    }
-    return -1;
-}
-
 static int get_prn_from_norad(const char * norad_file, int norad_id)
 {
     FILE *fp;
@@ -166,7 +119,7 @@ static int get_prn_from_norad(const char * norad_file, int norad_id)
     return 0;
 }
 
-int assert_gps_parms(gps_search_parameters_t * parms)
+int assert_galileo_parms(galileo_search_parameters_t * parms)
 {
     if (parms == NULL){
         return 0;
@@ -180,7 +133,7 @@ int assert_gps_parms(gps_search_parameters_t * parms)
     if (parms->minimum_angle > 90.0 || parms->minimum_angle <= 0.0){
         return 0;
     }
-    if (parms->max_satellite_amount <= 0 || parms->max_satellite_amount > GPS_CONSTELLATION_AMOUNT){
+    if (parms->max_satellite_amount <= 0 || parms->max_satellite_amount > GALILEO_CONSTELLATION_AMOUNT){
         return 0;
     }
     /* Do not check frequency...*/
@@ -188,7 +141,7 @@ int assert_gps_parms(gps_search_parameters_t * parms)
 }
 
 
-int get_visible_gps_from_tle_file(gps_search_parameters_t * gps_search, object_motion_t * receiver, gps_constellation_t * res)
+int get_visible_galileo_from_tle_file(galileo_search_parameters_t * gal_search, object_motion_t * receiver, galileo_constellation_t * res)
 {
     FILE * fp;
     tle_set * tle;
@@ -197,12 +150,12 @@ int get_visible_gps_from_tle_file(gps_search_parameters_t * gps_search, object_m
     double doppler_estimation, angle;
     int satellite_count = 0;
     
-    if (!assert_gps_parms(gps_search)){
+    if (!assert_galileo_parms(gal_search)){
         printf("Parameters introduced are invalid\n");
         return -1;
     }
 
-    fp = fopen(gps_search->tle_file, "r");
+    fp = fopen(gal_search->tle_file, "r");
     if (fp == NULL){
         _api_printf(1, "Error openning file\n");
         return -1;
@@ -213,15 +166,15 @@ int get_visible_gps_from_tle_file(gps_search_parameters_t * gps_search, object_m
         if (tle != NULL){
             if (actualposition(j_day(time(NULL)), tle, &gps.pos, &gps.vel) == 0){
                 angle = angle_vec3(gps.pos, receiver->pos);
-                if (angle < gps_search->minimum_angle){
-                    found_prn = get_prn_from_norad(gps_search->norad_to_prn_file, get_norad_id(tle));
-                    doppler_estimation = get_doppler(gps_search->frequency, get_range_rate(gps.pos, receiver->pos, gps.vel, receiver->vel));
+                if (angle < gal_search->minimum_angle){
+                    found_prn = get_prn_from_norad(gal_search->norad_to_prn_file, get_norad_id(tle));
+                    doppler_estimation = get_doppler(gal_search->frequency, get_range_rate(gps.pos, receiver->pos, gps.vel, receiver->vel));
                     _api_printf(0, "Satellite Norad ID: %d, PRN: %d with Doppler: %f Hz\n", 
                             get_norad_id(tle), found_prn, doppler_estimation);
                     res->found[found_prn] = 1;
                     res->doppler[found_prn] = doppler_estimation;
                     satellite_count++;
-                    if (satellite_count >= gps_search->max_satellite_amount){
+                    if (satellite_count >= gal_search->max_satellite_amount){
                         return 0;
                     }
                 }

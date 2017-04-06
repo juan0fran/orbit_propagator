@@ -3,6 +3,9 @@
 
 #include "orbit_propagator.h"
 
+#ifndef __TRACKER_API_DEFINES
+#define __TRACKER_API_DEFINES
+
 #define DEBUG_LEVEL 1
 
 #ifdef DEBUG
@@ -13,8 +16,6 @@
 #else
 #define _api_printf(level, x...) do{ }while(0);
 #endif
-
-#define GPS_CONSTELLATION_AMOUNT 	32
 
 #define NORMAL_BUFFER_SIZE 			256
 #define LONG_BUFFER_SIZE 			1024
@@ -27,6 +28,11 @@ typedef struct object_motion_s{
 	vec3 pos;
 	vec3 vel;
 }object_motion_t;
+
+#endif
+
+#define GPS_CONSTELLATION_AMOUNT 	32
+
 
 typedef struct gps_constellation_s{
 	/* More shit can be added here */
