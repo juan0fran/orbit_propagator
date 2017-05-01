@@ -28,7 +28,7 @@ static tle_set * load_tle_from_file(FILE *fp)
             if (first){
                 if (strlen(tle->lines._name) == 0){
                     strcpy(tle->lines._name, "DUMMYsat");
-                    tle->lines._name[TLE_NAME_SIZE] = '\0';   
+                    tle->lines._name[TLE_NAME_SIZE] = '\0';
                 }
                 if (line[0] != '1'){
                     if (tle)
@@ -40,7 +40,7 @@ static tle_set * load_tle_from_file(FILE *fp)
             }else{
                 if (line[0] != '2'){
                     if (tle)
-                        free(tle);                    
+                        free(tle);
                     return NULL;
                 }
                 strncpy(tle->lines._2, line, TLE_LINE_SIZE);
@@ -85,7 +85,7 @@ static int get_receiver_motion(double jd, const char * tle_file, vec3 * llh_pos,
         }else{
             free(tle);
             fclose(fp);
-            return -1; 
+            return -1;
         }
 
     }
@@ -96,6 +96,7 @@ static int get_receiver_motion(double jd, const char * tle_file, vec3 * llh_pos,
         receiver->vel.f.z = 0;
         return 0;
     }
+    return 0;
 }
 
 /* pos1 is the target, pos2 is you */
@@ -137,84 +138,92 @@ static int get_payload_pointing(double jd, object_motion_t * payload, object_mot
     /* We have the pointing vector now */
 }
 
+static int propaget_single(propagation_config_t *conf, object_motion_t *object)
+{
+    if (object == NULL || conf == NULL) {
+        return -1;
+    }
+    if (conf->has_tle){
+        if (get_receiver_motion(j_day(conf->timestamp), conf->tle, NULL, object) != 0){
+            return -1;
+        }
+    }else{
+        if (get_receiver_motion(j_day(conf->timestamp), NULL, &conf->llh, object) != 0){
+            return -1;
+        }
+    }
+    return 0;
+}
+
+int propagate_and_get_llh(propagation_config_t *conf, vec3 *llh)
+{
+    object_motion_t object;
+    int ret = -1;
+    if (conf == NULL || llh == NULL) {
+        return -1;
+    }
+    if (propaget_single(conf, &object) != -1) {
+        eci2llh(j_day(conf->timestamp), object.pos, llh);
+        ret = 0;
+    }
+    return ret;
+}
+
 /* Function wrapper for all the functions, you input a UNIX TIMESTAMP, and a configuration struct */
 /* Input for the Station is LLH or TLE */
 /* Input for the Platform is LLH or TLE */
 /* Input frequency (for doppler est) */
 /* Output Platform LLH, Station LLH */
-/* Output Doppler Estimation (if freq is given), Relative Speed, Relative Distance respect to Station */ 
+/* Output Doppler Estimation (if freq is given), Relative Speed, Relative Distance respect to Station */
 /* Output Azimuth and Elevation respect to Station */
 
-int propagate_from_station(propagation_config_t * conf, propagation_output_t * res)
+int propagate_and_get_visibility(visibility_config_t * conf, propagation_output_t * res)
 {
     object_motion_t platform;
     object_motion_t station;
     payload_location_t out;
-    
-    if (conf == NULL || res ==  NULL){
+    int ret = -1;
+    if (conf == NULL || res ==  NULL) {
         return -1;
     }
-    if (conf->station_has_tle){
-        if (get_receiver_motion(j_day(conf->timestamp), conf->station_tle, NULL, &station) != 0){
-            return -1;
+    if (propaget_single(&conf->station, &station) != -1) {
+        eci2llh(j_day(conf->station.timestamp), station.pos, &res->station_llh);
+        if (propaget_single(&conf->platform, &platform) != -1) {
+            eci2llh(j_day(conf->platform.timestamp), platform.pos, &res->platform_llh);
+            if (get_payload_pointing(j_day(conf->station.timestamp), &platform, &station, &out) != -1) {
+                ret = 0;
+                res->az = out.az;
+                res->el = out.el;
+                res->rel_dist = out.dist;
+                res->rel_velocity = get_range_rate(platform.pos, station.pos, platform.vel, station.vel);
+                res->doppler = get_doppler(conf->in_freq, res->rel_velocity);
+            }
         }
-        eci2llh(j_day(conf->timestamp), station.pos, &res->station_llh);
-    }else{
-        if (get_receiver_motion(j_day(conf->timestamp), NULL, &conf->station_llh, &station) != 0){
-            return -1;
-        }
-        memcpy(&res->station_llh, &conf->station_llh, sizeof(vec3));
     }
-    if (conf->platform_has_tle){
-        if (get_receiver_motion(j_day(conf->timestamp), conf->platform_tle, NULL, &platform) != 0){
-            return -1;
-        }
-        eci2llh(j_day(conf->timestamp), platform.pos, &res->platform_llh);
-    }else{
-        if (get_receiver_motion(j_day(conf->timestamp), NULL, &conf->platform_llh, &platform) != 0){
-            return -1;
-        }
-        memcpy(&res->platform_llh, &conf->platform_llh, sizeof(vec3));
-    }
-    /* Now we have all motions */
-    if (get_payload_pointing(j_day(conf->timestamp), &platform, &station, &out) != 0){
-        return -1;
-    }
-    res->az = out.az;
-    res->el = out.el;
-    res->rel_dist = out.dist;
-    res->rel_velocity = get_range_rate(platform.pos, station.pos, platform.vel, station.vel);
-    res->doppler = get_doppler(conf->in_freq, res->rel_velocity);
-    return 0;
+    return ret;
 }
 
-int main(void)
+static float sign_triangle_vec3(vec3 p1, vec3 p2, vec3 p3)
 {
-    int i;
-    vec3 station_llh;
-    vec3 platform_llh;
-    propagation_config_t conf;
-    propagation_output_t out;
-    conf.station_has_tle = false;
-    conf.platform_has_tle = true;
-    station_llh.f.x = 41;
-    station_llh.f.y = 2;
-    station_llh.f.z = 100;
-    memcpy(&conf.station_llh, &station_llh, sizeof(vec3));
-    strcpy(conf.platform_tle, "mine_tle.txt");
-    conf.in_freq = 100e6;
-    conf.timestamp = time(NULL);
-    for (i = 0; i < 20; i++){
-        conf.timestamp += 240;
-        propagate_from_station(&conf, &out);
-        printf("%f, %f\n", out.platform_llh.raw[0], out.platform_llh.raw[1]);      
+  return (p1.f.x - p3.f.x) * (p2.f.y - p3.f.y) - (p2.f.x - p3.f.x) * (p1.f.y - p3.f.y);
+}
+
+static bool ispoint_inside_triangle_vec3(vec3 pt, vec3 v1, vec3 v2, vec3 v3)
+{
+  bool b1, b2, b3;
+  b1 = sign_triangle_vec3(pt, v1, v2) < 0.0f;
+  b2 = sign_triangle_vec3(pt, v2, v3) < 0.0f;
+  b3 = sign_triangle_vec3(pt, v3, v1) < 0.0f;
+  return ((b1 == b2) && (b2 == b3));
+}
+
+bool ispoint_inside_region(vec3 pt, square_region_t reg)
+{
+    if( ispoint_inside_triangle_vec3(pt, reg.p1, reg.p2, reg.p3) ||
+        ispoint_inside_triangle_vec3(pt, reg.p1, reg.p2, reg.p4) ||
+        ispoint_inside_triangle_vec3(pt, reg.p2, reg.p3, reg.p4)) {
+        return true;
+    }else {
+        return false;
     }
-    /*
-    printf("Station LLH: %f º %f º %f km\n", out.station_llh.raw[0], out.station_llh.raw[1], out.station_llh.raw[2]/1000.0);
-    printf("Platform LLH: %f º %f º %f km\n", out.platform_llh.raw[0], out.platform_llh.raw[1], out.platform_llh.raw[2]/1000.0);
-    printf("Azimuth: %f º Elevation: %f º Distance: %f km\n", out.az, out.el, out.rel_dist/1000.0);
-    printf("Relative Velocity: %f km/s\n", out.rel_velocity/1000.0);
-    printf("Doppler from %f MHz -> %f Hz\n", conf.in_freq/1e6, out.doppler);
-    */
-    return 0;
 }

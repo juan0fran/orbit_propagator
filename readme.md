@@ -7,7 +7,7 @@ Compile with:
 ```
 gcc main.c gps_tracker_api.c orbit_propagator.c sgdp4.c satutl.c -lm -DDEBUG
 ```
-Simply run: 
+Simply run:
 ```
 ./a.out
 ```
@@ -19,7 +19,7 @@ Compile with:
 ```
 gcc main_payload.c payload_tracker_api.c orbit_propagator.c sgdp4.c satutl.c -lm -DDEBUG
 ```
-Simply run: 
+Simply run:
 ```
 ./a.out
 ```

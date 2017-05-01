@@ -2,7 +2,7 @@
 #define __ORBIT_PROPAGATOR_H__
 
 #include "sgdp4.h"
-#include <string.h> 
+#include <string.h>
 #include <time.h>
 #include <sys/time.h>
 #include <math.h>
@@ -34,7 +34,15 @@
 #define cosd(x) (cos(fmod((x),360) * PI / 180))
 #define acosd(x) (acos( x ) / PI * 180)
 
-#define     DEG2RAD(x)      (x * M_PI) / 180.0   
+#define     DEG2RAD(x)      (x * M_PI) / 180.0
+
+typedef union __attribute__ ((__packed__)) _vec2{
+	double raw[2];
+	struct __attribute__ ((__packed__)) {
+		double x;
+		double y;
+	}f;
+}vec2;
 
 typedef union __attribute__ ((__packed__)) _vec3{
 	double raw[3];
@@ -56,7 +64,7 @@ typedef union __attribute__ ((__packed__)) _mat3{
 		double _23;
 		double _31;
 		double _32;
-		double _33;		
+		double _33;
 	}f;
 }mat3;
 

@@ -3,6 +3,7 @@
 
 #include "orbit_propagator.h"
 #include <stdbool.h>
+#include <time.h>
 
 #define DEBUG_LEVEL 1
 
@@ -19,6 +20,13 @@
 #define LONG_BUFFER_SIZE 			1024
 #define SHORT_BUFFER_SIZE			64
 
+typedef struct square_region_s{
+    vec3 p1;
+    vec3 p2;
+    vec3 p3;
+    vec3 p4;
+}square_region_t;
+
 typedef struct object_motion_s{
 	vec3 pos;
 	vec3 vel;
@@ -31,21 +39,20 @@ typedef struct payload_location_s{
 }payload_location_t;
 
 typedef struct propagation_config_s{
-	/* Timetstamp of the simulation in UNIX UTC time */
-	unsigned long timestamp;
-	/* If false, look for station_llh */
-	/* If true, look for tle set */
-	bool 		station_has_tle;
-	vec3 		station_llh;
-	char 		station_tle[NORMAL_BUFFER_SIZE];
-	/* If false, look for platform */
-	/* If true, look for tle set */
-	bool 		platform_has_tle;
-	vec3 		platform_llh;
-	char 		platform_tle[NORMAL_BUFFER_SIZE];
-	/* Frequency of tx/rx, */ 
-	double 		in_freq;
+    time_t      timestamp;
+    /* If false, look for station_llh */
+    /* If true, look for tle set */
+    bool 		has_tle;
+    vec3 		llh;
+    char 		tle[NORMAL_BUFFER_SIZE];
 }propagation_config_t;
+
+typedef struct visibility_config_t{
+    propagation_config_t station;
+    propagation_config_t platform;
+	/* Frequency of tx/rx, */
+	double 		in_freq;
+}visibility_config_t;
 
 typedef struct propagation_output_s{
 	/* In case you have a tle... */
@@ -61,5 +68,8 @@ typedef struct propagation_output_s{
 	double 		el;
 }propagation_output_t;
 
-#endif
+int propagate_and_get_visibility(visibility_config_t * conf, propagation_output_t * res);
+int propagate_and_get_llh(propagation_config_t *conf, vec3 * llh);
+bool ispoint_inside_region(vec3 pt, square_region_t reg);
 
+#endif
