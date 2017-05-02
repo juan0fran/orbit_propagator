@@ -217,8 +217,37 @@ static bool ispoint_inside_triangle_vec3(vec3 pt, vec3 v1, vec3 v2, vec3 v3)
   return ((b1 == b2) && (b2 == b3));
 }
 
+static int sign(double number)
+{
+    int ret = 0;
+    if (number < 0.0) {
+        ret = -1;
+    }else if (number >= 0.0) {
+        ret = 1;
+    }
+    return ret;
+}
+
 bool ispoint_inside_region(vec3 pt, square_region_t reg)
 {
+    /* Look for region is crossing the longitude of -180->180 */
+    /* Region is defined in 4 points */
+    /* Longiude is .f.y */
+    if (sign(pt.f.y) == -1) {
+        pt.f.y += 360.0;
+    }
+    if (sign(reg.p1.f.y) == -1) {
+        reg.p1.f.y += 360.0;
+    }
+    if (sign(reg.p2.f.y) == -1) {
+        reg.p2.f.y += 360.0;
+    }
+    if (sign(reg.p3.f.y) == -1) {
+        reg.p3.f.y += 360.0;
+    }
+    if (sign(reg.p4.f.y) == -1) {
+        reg.p4.f.y += 360.0;
+    }
     if( ispoint_inside_triangle_vec3(pt, reg.p1, reg.p2, reg.p3) ||
         ispoint_inside_triangle_vec3(pt, reg.p1, reg.p2, reg.p4) ||
         ispoint_inside_triangle_vec3(pt, reg.p2, reg.p3, reg.p4)) {
