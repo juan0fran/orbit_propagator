@@ -90,38 +90,56 @@ void get_range()
 /* Get visibility test */
 void get_visibility()
 {
+    bool current_pass;
     int i;
+    double max_el;
     vec3 station_llh;
     vec3 platform_llh;
     visibility_config_t conf;
     propagation_output_t out;
     conf.station.has_tle = false;
     conf.platform.has_tle = true;
-    station_llh.f.x = 32.18;
-    station_llh.f.y = -96.88;
+    station_llh.f.x = 41;
+    station_llh.f.y = 2;
     station_llh.f.z = 10;
     time_t now;
+    time_t start_pass;
     struct tm ts;
     char buf[80];
 
     memcpy(&conf.station.llh, &station_llh, sizeof(vec3));
     strcpy(conf.platform.tle, "mine_tle.txt");
-    conf.in_freq = 100e6;
+    conf.in_freq = 438e6;
     conf.station.timestamp = time(NULL);
     conf.platform.timestamp = time(NULL);
-    int delta_time = 5;
-    int minutes_of_simulation = 120;
+    int delta_time = 10;
+    int minutes_of_simulation = 2880 * 10;
     int count_simulation = minutes_of_simulation * (60 / delta_time);
 
+    current_pass = false;
     for (i = 0; i < count_simulation; i++) {
         propagate_and_get_visibility(&conf, &out);
-        if (out.el >= 0) {
+        if (out.el >= 5.0) {
+            if (current_pass == false) {
+                current_pass = true;
+                start_pass = conf.station.timestamp;
+                max_el = 5.0;
+            }
             now = conf.station.timestamp;
             ts = *localtime(&now);
             strftime(buf, sizeof(buf), "%a %Y-%m-%d %H:%M:%S %Z", &ts);
-            printf("Time: %s, ", buf);
-            printf("Az: %f, EL: %f, ", out.az, out.el);
-            printf("LAT: %f, LON: %f\n", out.platform_llh.raw[0], out.platform_llh.raw[1]);
+            if (max_el < out.el) {
+                max_el = out.el;
+            }
+            //printf("Time: %ld, ", now);
+            //printf("Az: %f, EL: %f, R: %f\n", out.az, out.el, out.rel_dist/1000.0);
+            //printf("LAT: %f, LON: %f\n", out.platform_llh.raw[0], out.platform_llh.raw[1]);
+        }else {
+            if (current_pass == true) {
+                /* A pass has ended */
+                printf("MAX_EL: %f\tTIME: %d\n", max_el, (int) (conf.station.timestamp - start_pass));
+            }
+            current_pass = false;
         }
         conf.station.timestamp += delta_time;
         conf.platform.timestamp += delta_time;

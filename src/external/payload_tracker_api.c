@@ -54,7 +54,7 @@ static tle_set * load_tle_from_file(FILE *fp)
    /* Returns 0 at EOF, -1 at error, and > 0 as the pointer of the file */
 }
 
-static int get_receiver_motion(double jd, const char * tle_file, vec3 * llh_pos, object_motion_t * receiver)
+static int get_receiver_motion(double jd, const char *tle_file, vec3 *llh_pos, object_motion_t *receiver)
 {
     FILE * fp;
     tle_set * tle;
@@ -115,8 +115,7 @@ static double get_range_rate(vec3 pos1, vec3 pos2, vec3 vel1, vec3 vel2)
 
 static double get_doppler(double frequency, double range_rate)
 {
-    #define Light_Speed 299792458.0
-    return ((frequency * (1.0 - (range_rate / Light_Speed))) - frequency);
+    return (frequency * (1.0 - (range_rate / Light_Speed)));
 }
 
 /* Input 2 object motions */
@@ -186,17 +185,22 @@ int propagate_and_get_visibility(visibility_config_t * conf, propagation_output_
     if (conf == NULL || res ==  NULL) {
         return -1;
     }
+    if (conf->station.timestamp != conf->platform.timestamp) {
+        return -1;
+    }
     if (propaget_single(&conf->station, &station) != -1) {
         eci2llh(j_day(conf->station.timestamp), station.pos, &res->station_llh);
         if (propaget_single(&conf->platform, &platform) != -1) {
             eci2llh(j_day(conf->platform.timestamp), platform.pos, &res->platform_llh);
             if (get_payload_pointing(j_day(conf->station.timestamp), &platform, &station, &out) != -1) {
                 ret = 0;
+                res->timestamp = conf->platform.timestamp;
                 res->az = out.az;
                 res->el = out.el;
                 res->rel_dist = out.dist;
                 res->rel_velocity = get_range_rate(platform.pos, station.pos, platform.vel, station.vel);
-                res->doppler = get_doppler(conf->in_freq, res->rel_velocity);
+                res->dl_doppler = get_doppler(conf->in_freq, res->rel_velocity) - conf->in_freq;
+                res->ul_doppler = get_doppler(conf->in_freq, res->rel_velocity) + conf->in_freq;
             }
         }
     }
