@@ -23,6 +23,7 @@ class OrbitSimulator : public Link{
         void SetGroundLocation(double lat, double lon, double height);
         void SetSpaceTLEFile(const char *tle);
         void SetTimestep(unsigned long timestep);
+        
         void SetSimulationInterval(unsigned long start, unsigned long end);
         void SetSimulationInterval(unsigned long start, unsigned long end, unsigned int timestep);
 
