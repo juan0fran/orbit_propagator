@@ -199,8 +199,8 @@ int propagate_and_get_visibility(visibility_config_t * conf, propagation_output_
                 res->el = out.el;
                 res->rel_dist = out.dist;
                 res->rel_velocity = get_range_rate(platform.pos, station.pos, platform.vel, station.vel);
-                res->dl_doppler = get_doppler(conf->in_freq, res->rel_velocity) - conf->in_freq;
-                res->ul_doppler = get_doppler(conf->in_freq, res->rel_velocity) + conf->in_freq;
+                res->dl_doppler =  1.0 * (conf->in_freq - get_doppler(conf->in_freq, res->rel_velocity));
+                res->ul_doppler = -1.0 * (conf->in_freq - get_doppler(conf->in_freq, res->rel_velocity));
             }
         }
     }

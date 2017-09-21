@@ -146,9 +146,9 @@ void DataSimulator::plotCurrentBudget()
     std::cout << _pass_duration << ", ";
     std::cout << getFrameInterval() << ", ";
     std::cout << getFrameSize() << ", ";
-    std::cout << getPayloadDLTime() << ", ";
+    //std::cout << getPayloadDLTime() << ", ";
     std::cout << getPassBudget() << ", ";
-    std::cout << getScientificBlockSize() << ", ";
-    std::cout << getLogMessageSize() << ", ";
+    std::cout << getLogMessageSize()/1024.0 << ", ";
+    //std::cout << getScientificBlockSize() << ", ";
     std::cout << getLogBlockSize() << std::endl;
 }

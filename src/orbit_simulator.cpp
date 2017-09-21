@@ -1,5 +1,7 @@
 #include <cstdio>
 #include <iostream>
+#include <fstream>
+#include <locale>
 
 #include "orbit_simulator.h"
 
@@ -61,20 +63,26 @@ void OrbitSimulator::SetSimulationInterval(unsigned long start, unsigned long en
     _orbit_conf.platform.timestamp = start;
 }
 
-void OrbitSimulator::ShowResults()
+std::string OrbitSimulator::GetResults()
 {
+    std::stringstream str;
+    str.imbue(std::locale(""));
     for (SimulatorResultsVec::iterator it = Results.begin(); it != Results.end(); it++) {
-        if (it->propagation.el > 0.0) {
-            std::cout << it->propagation.timestamp << "; ";
-            std::cout << it->propagation.el << "; ";
-            std::cout << it->propagation.rel_dist << "; ";
-            std::cout << it->link.snr << "; ";
-            std::cout << it->link.ber << "; ";
-            std::cout << it->link.per << "; ";
-            std::cout << it->link.rfer <<  "; ";
-            std::cout << it->link.bfer << std::endl;
+        if (it->propagation.el >= _min_elev) {
+            str << it->propagation.timestamp << ";";
+            str << it->propagation.az << ";";
+            str << it->propagation.el << ";";
+            str << it->propagation.ul_doppler << ";";
+            str << it->propagation.dl_doppler << std::flush << std::endl;
+            //str << it->propagation.rel_dist <<  ";";
+            //str << it->link.snr << ";";
+            //str << it->link.ber << std::flush << std::endl;
+            //std::cout << it->link.per << "; ";
+            //std::cout << it->link.rfer <<  "; ";
+            //std::cout << it->link.bfer << std::endl;
         }
     }
+    return str.str();
 }
 
 unsigned long OrbitSimulator::getLastPassDuration()
@@ -109,7 +117,7 @@ void OrbitSimulator::findNextPass(unsigned long start_timestamp)
         if (single_result.propagation.el < _min_elev) {
             if (passFound == true) {
                 _last_pass_end = t;
-                if ((_last_pass_end - _last_pass_start) < 340) {
+                if ((_last_pass_end - _last_pass_start) < 1) {
                     Results.clear();
                     SetSimulationInterval(t+_sim_timestep, t+_sim_timestep + 86400);
                     passFound = false;
@@ -128,4 +136,17 @@ void OrbitSimulator::findNextPass(unsigned long start_timestamp)
             Results.push_back(single_result);
         }
     }
+}
+
+unsigned long OrbitSimulator::getPassAvailability()
+{
+    int count_good = 0, count_bad = 0;
+    for (SimulatorResultsVec::iterator it = Results.begin(); it != Results.end(); it++) {
+        if (it->link.ber > 1e-5) {
+            count_bad++;
+        }else {
+            count_good++;
+        }
+    }
+    return (count_good*100)/(count_good+count_bad);
 }

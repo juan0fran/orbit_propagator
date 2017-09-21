@@ -4,6 +4,7 @@
 #include <iostream>
 #include <chrono>
 #include <random>
+#include <stdio.h>
 
 Link::Link()
 {
@@ -55,8 +56,9 @@ double BurstErrCode(int N, int T, double ber)
 {
     double sum = 0.0;
     for (int i = 1; i < T; i++) {
-        sum += RandomErrCode(N, i, ber);
+        sum += i*RandomErrCode(N, i, ber);
     }
+    sum /= T;
     if (sum >= 0.5) {
         return 0.5;
     }else {
@@ -64,13 +66,28 @@ double BurstErrCode(int N, int T, double ber)
     }
 }
 
-double Link::computeRandomFading()
+void Link::setRandomPointingSigma(double sigma)
+{
+    _random_sigma = sigma;
+}
+
+double Link::computeRandomPointing()
 {
     /* rand() */
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator (seed);
-    std::normal_distribution<double> distribution(0.0, 1.0);
-    return (std::abs((distribution(generator))));
+    std::normal_distribution<double> distribution(0.0, _random_sigma);
+    double offset_angle = distribution(generator);
+    double value = 12.0 * pow(offset_angle/_3db_beam, 2.0);
+    return value;
+}
+
+double Link::computeRandomFading()
+{
+    /* rice(sigma, v) */
+    itpp::Rice_RNG rice(_s4_sigma, _s4_v);
+    double value = -10.0 * std::log10(rice());
+    return value;
 }
 
 /* this is private */
@@ -78,7 +95,7 @@ double Link::computeSNR(double distance)
 {
     double s;
     double path_loss = (20.0 * log10(distance) + 20.0 * log10(_rf_freq_hz) - 147.55);
-    s = _p_out_dbm + _gain_db - ( _losses_db + path_loss + computeRandomFading());
+    s = _p_out_dbm + _gain_db - ( _losses_db + path_loss + _atmospheric + computeRandomFading() + computeRandomPointing());
     _snr = (s - _n_floor_dbm);
     return _snr;
 }
@@ -120,7 +137,7 @@ double Link::computeCodedBER()
 
 double Link::computeUncodedBER()
 {
-    /* coded solution -> we do have RS(255,223) into account */
+    /* coded solution -> we do not have RS(255,223) into account */
     double ebno = pow(10.0, (_snr/10.0));
     return (0.5 * erfc(sqrt(0.76 * ebno)));
 }
@@ -128,13 +145,15 @@ double Link::computeUncodedBER()
 double Link::computeCodedBER(double snr)
 {
     /* coded solution -> we do have RS(255,223) into account */
-    double ebno = pow(10.0, ((snr+1.5)/10.0));
-    return (0.5 * erfc(sqrt(0.76 * ebno)));
+    //double ebno = pow(10.0, ((snr+1.5)/10.0));
+    double ebno = pow(10.0, (snr/10.0));
+    double uncoded = (0.5 * erfc(sqrt(0.76 * ebno)));
+    return BurstErrCode(255, 16, uncoded);
 }
 
 double Link::computeUncodedBER(double snr)
 {
-    /* coded solution -> we do have RS(255,223) into account */
+    /* coded solution -> we do not have RS(255,223) into account */
     double ebno = pow(10.0, (snr/10.0));
     return (0.5 * erfc(sqrt(0.76 * ebno)));
 }
@@ -150,9 +169,33 @@ void Link::setGains(double gs_gain, double sat_gain)
     _gain_db = gs_gain + sat_gain;
 }
 
-void Link::setLosses(double polarization, double atmospheric, double pointing)
+void Link::setLosses(double polarization, double atmospheric)
 {
-    _losses_db = polarization + atmospheric + pointing;
+    _losses_db = polarization;
+    _atmospheric = atmospheric;
+}
+
+void Link::setFadings(double s4)
+{
+    /*
+        K = (1-S4^2)^0.5
+        sigma is (1-(1-S4^2)^0.5) / 2
+        v is ((1-S4^2)^0.5) / (1-(1-S4^2)^0.5)
+    */
+    double K = std::sqrt(1.0 - pow(s4, 2.0))/(1.0 - std::sqrt(1.0 - pow(s4, 2.0)));
+    _s4_sigma = std::sqrt((1.0 - std::sqrt(1.0 - pow(s4, 2.0))));
+    _s4_v = std::sqrt(_s4_sigma*_s4_sigma*2.0*K);
+}
+
+void Link::setAntennaBeamFromD(double directivity)
+{
+    double directivity_lin = pow(10.0, (directivity/10.0));
+    _3db_beam = 41253.0 / (directivity_lin * 360.0);
+}
+
+void Link::setAntennaBeam(double dbbeam)
+{
+    _3db_beam = dbbeam;
 }
 
 void Link::setDistance(double distance)

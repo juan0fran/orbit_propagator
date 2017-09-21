@@ -1,6 +1,7 @@
 #ifndef __ORBIT_SIMULATOR_HPP__
 #define __ORBIT_SIMULATOR_HPP__
 
+#include <string>
 #include <vector>
 #include "link.h"
 #include "payload_tracker_api.h"
@@ -24,11 +25,13 @@ class OrbitSimulator : public Link{
         void SetTimestep(unsigned long timestep);
         void SetSimulationInterval(unsigned long start, unsigned long end);
         void SetSimulationInterval(unsigned long start, unsigned long end, unsigned int timestep);
-        void ShowResults();
+
+        std::string GetResults();
 
         unsigned long getLastFoundPassStart();
         unsigned long getLastFoundPassEnd();
         unsigned long getLastPassDuration();
+        unsigned long getPassAvailability();
 
         void run();
         void findNextPass(unsigned long start_timestamp);

@@ -15,6 +15,7 @@ MARK_AS_ADVANCED(
 
 link_directories(${LIBRARY_OUTPUT_PATH})
 link_directories(/usr/lib/)
+link_directories(/usr/local/lib/)
 
 add_subdirectory(src)
 add_subdirectory(src/external)
