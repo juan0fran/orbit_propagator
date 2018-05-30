@@ -34,7 +34,7 @@ void initializeObject(OrbitSimulator &orb)
     orb.setAntennaBeam(135);
     orb.setRandomPointingSigma(45);
     /* start orbit object */
-    orb.SetMinimumElevation(10.0);
+    orb.SetMinimumElevation(5.0);
     orb.SetCommsFreq(437e6);
     orb.SetGroundLocation(41, 2, 200);
     orb.SetSpaceTLEFile("funcube_tle.txt");
@@ -48,7 +48,7 @@ void initializeObject(DataSimulator &data, unsigned int duration, unsigned int i
     data.setFrameSize(size);
     data.setMaxDataDutyCycle(97);
     data.setScientifcDLTime(225);
-    data.setScientificSize(0*1024); /* 18 kB of scientific data to be downloaded per pass */
+    data.setScientificSize(18*1024); /* 18 kB of scientific data to be downloaded per pass */
     data.setTelemetryMessageSize(300); /* 300 bytes is the telemetry */
     //data.addScientificRedundacy(5.0/8.0);
     data.addMinimumLogInfo(20*1024);

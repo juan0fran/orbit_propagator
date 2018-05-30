@@ -70,13 +70,13 @@ std::string OrbitSimulator::GetResults()
     for (SimulatorResultsVec::iterator it = Results.begin(); it != Results.end(); it++) {
         if (it->propagation.el >= _min_elev) {
             str << it->propagation.timestamp << ";";
-            str << it->propagation.az << ";";
+            //str << it->propagation.az << ";";
             str << it->propagation.el << ";";
-            str << it->propagation.ul_doppler << ";";
-            str << it->propagation.dl_doppler << std::flush << std::endl;
-            //str << it->propagation.rel_dist <<  ";";
-            //str << it->link.snr << ";";
-            //str << it->link.ber << std::flush << std::endl;
+            //str << it->propagation.ul_doppler << ";";
+            //str << it->propagation.dl_doppler << std::flush << std::endl;
+            str << it->propagation.rel_dist <<  ";";
+            str << it->link.snr << ";";
+            str << it->link.ber << std::flush << std::endl;
             //std::cout << it->link.per << "; ";
             //std::cout << it->link.rfer <<  "; ";
             //std::cout << it->link.bfer << std::endl;

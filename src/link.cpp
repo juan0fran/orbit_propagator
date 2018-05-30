@@ -107,7 +107,7 @@ double Link::getRandomFrameErrorRate()
     if (per >= 0.63) {
         return 1;
     }else {
-        return (RandomErrCode(11, 4, per));
+        return (RandomErrCode(12, 4, per));
     }
 }
 
@@ -118,7 +118,7 @@ double Link::getBurstFrameErrorRate()
     if (per >= 0.63) {
         return 1;
     }else {
-        return (BurstErrCode(11, 4, per));
+        return (BurstErrCode(12, 4, per));
     }
 }
 
